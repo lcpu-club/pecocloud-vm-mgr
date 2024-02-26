@@ -103,6 +103,29 @@ pub struct VmRestoreAllResponse {
     pub infos: Vec<Uuid>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct VmCreateVMMSRequest {
+    pub vmid: Uuid,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct VmCreateVMMSResponse {
+    pub vmid: Uuid,
+    pub vm_mem_snapshot_id: Uuid,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct VmDeleteVMMSRequest {
+    pub vmid: Uuid,
+    pub vm_mem_snapshot_id: Uuid,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct VmDeleteVMMSResponse {
+    pub vmid: Uuid,
+    pub vm_mem_snapshot_id: Uuid,
+}
+
 // Schemas
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

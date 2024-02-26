@@ -99,3 +99,22 @@ pub async fn get_vm_status_op(
 
     Ok(infos)
 }
+
+pub async fn create_vm_mem_snapshot_op(pool: web::Data<Mutex<VmPool>>, vmid: Uuid) -> VmManageResult<Uuid> {
+    let mut pool_mutex = pool.lock().unwrap();
+    let mut pool_guard = pool_mutex.lock(vmid).await?;
+    let pool = pool_guard.pool();
+
+    let vm_mem_snapshot_id = pool::create_vm_mem_snapshot(pool, vmid).await?;
+
+    Ok(vm_mem_snapshot_id)
+}
+
+pub async fn delete_vm_mem_snapshot_op(pool: web::Data<Mutex<VmPool>>, vmid: Uuid, vm_mem_snapshot_id: Uuid) -> VmManageResult<()> {
+    let mut pool_mutex = pool.lock().unwrap();
+    let mut pool_guard = pool_mutex.lock(vmid).await?;
+    let pool = pool_guard.pool();
+
+    pool::delete_vm_mem_snapshot(pool, vmid, vm_mem_snapshot_id).await?;
+    Ok(())
+}

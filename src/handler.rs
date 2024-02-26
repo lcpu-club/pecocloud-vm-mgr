@@ -97,3 +97,35 @@ async fn delete_vm_handler(
         Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }
 }
+
+#[post("/api/v1/vm/{vmid}/vm_mem_snapshot")]
+async fn create_vm_mem_snapshot_handler(
+    pool: web::Data<Mutex<VmPool>>,
+    request: web::Json<VmCreateVMMSRequest>,
+) -> impl Responder {
+    let request = request.into_inner();
+    let res = create_vm_mem_snapshot_op(pool, request.vmid).await;
+    match res {
+        Ok(id) => HttpResponse::Ok().json(VmCreateVMMSResponse {
+            vmid: request.vmid,
+            vm_mem_snapshot_id: id,
+        }),
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+    }
+}
+
+#[delete("/api/v1/vm/{vmid}/vm_mem_snapshot/{vm_mem_snapshot_id}")]
+async fn delete_vm_mem_snapshot_handler(
+    pool: web::Data<Mutex<VmPool>>,
+    request: web::Json<VmDeleteVMMSRequest>,
+) -> impl Responder {
+    let request = request.into_inner();
+    let res = delete_vm_mem_snapshot_op(pool, request.vmid, request.vm_mem_snapshot_id).await;
+    match res {
+        Ok(_) => HttpResponse::Ok().json(VmDeleteVMMSResponse {
+            vmid: request.vmid,
+            vm_mem_snapshot_id: request.vm_mem_snapshot_id,
+        }),
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+    }
+}

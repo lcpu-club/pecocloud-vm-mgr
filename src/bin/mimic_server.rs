@@ -41,6 +41,8 @@ async fn main() -> std::io::Result<()> {
             .service(modify_metadata_handler)
             .service(operate_vm_handler)
             .service(delete_vm_handler)
+            .service(create_vm_mem_snapshot_handler)
+            .service(delete_vm_mem_snapshot_handler)
             .app_data(web::Data::new(Mutex::new(pool.clone())))
     })
     .bind((listen_address, port))?

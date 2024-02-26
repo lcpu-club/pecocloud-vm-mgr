@@ -209,7 +209,7 @@ impl VmPool {
 
 impl VmPool {
     async fn get_core_db(&self, vmid: Uuid) -> VmManageResult<MachineCore> {
-        log::trace!("Getting core {}", vmid);
+        log::trace!("Getting core of {} from database", vmid);
         let core = sqlx::query_as::<_, PgMachineCoreElement>(GET_MACHINE_CORE_BY_VMID)
             .bind(self.machine_core_storage_table())
             .bind(vmid)
@@ -226,6 +226,7 @@ impl VmPool {
         core: &MachineCore,
         status: MachineState,
     ) -> VmManageResult<()> {
+        log::trace!("Adding core of {} to database", vmid);
         let machine_core_storage_table = self.machine_core_storage_table();
         sqlx::query(INSERT_MACHINE_CORE_BY_VMID)
             .bind(machine_core_storage_table)
@@ -240,6 +241,7 @@ impl VmPool {
     }
 
     async fn delete_core_db(&self, vmid: Uuid) -> VmManageResult<()> {
+        log::trace!("Deleting core of {} from database", vmid);
         let machine_core_storage_table = self.machine_core_storage_table();
         sqlx::query(DELETE_MACHINE_CORE_BY_VMID)
             .bind(machine_core_storage_table)
@@ -256,7 +258,7 @@ impl VmPool {
         core: &MachineCore,
         status: MachineState,
     ) -> VmManageResult<()> {
-        log::trace!("Updating status {}", vmid);
+        log::trace!("Updating status of {}", vmid);
         sqlx::query(UPDATE_MACHINE_CORE_BY_VMID)
             .bind(self.machine_core_storage_table())
             .bind(sqlx::types::Json(core))
@@ -273,6 +275,7 @@ impl VmPool {
         vmid: Uuid,
         config: &MachineCreateConfig,
     ) -> VmManageResult<()> {
+        log::trace!("Adding create-config of {} to database", vmid);
         let config_storage_table = self.config_storage_table();
         sqlx::query(INSERT_VMVIEWCONFIGS_BY_VMID)
             .bind(config_storage_table)
@@ -286,6 +289,7 @@ impl VmPool {
     }
 
     async fn delete_create_config_db(&self, vmid: Uuid) -> VmManageResult<()> {
+        log::trace!("Deleting create-config of {} from database", vmid);
         let config_storage_table = self.config_storage_table();
         sqlx::query(DELETE_VMVIEWCONFIGS_BY_VMID)
             .bind(config_storage_table)
@@ -298,6 +302,7 @@ impl VmPool {
     }
 
     async fn add_volume_db(&self, vmid: Uuid, volume: Uuid) -> VmManageResult<()> {
+        log::trace!("Adding volume {} of vm {} to database", volume, vmid);
         let volume_storage_table = self.volume_storage_table();
         sqlx::query(INSERT_VOLUME_BY_ID)
             .bind(volume_storage_table)
@@ -311,6 +316,7 @@ impl VmPool {
     }
 
     async fn delete_volume_db(&self, vmid: Uuid, volume: Uuid) -> VmManageResult<()> {
+        log::trace!("Deleting volume {} of vm {} from database", volume, vmid);
         let volume_storage_table = self.volume_storage_table();
         sqlx::query(DELETE_VOLUME_BY_ID)
             .bind(volume_storage_table)
@@ -324,6 +330,7 @@ impl VmPool {
     }
 
     async fn get_volume_id(&self, vmid: Uuid) -> VmManageResult<Vec<Uuid>> {
+        log::trace!("Getting volume id of vm {} from database", vmid);
         let volume_storage_table = self.volume_storage_table();
         let elements: Vec<Uuid> = sqlx::query_as::<_, PgVolumeElement>(GET_VOLUME_ALL)
             .bind(volume_storage_table)
@@ -345,6 +352,11 @@ impl VmPool {
         mem_file_path: &PathBuf,
         snapshot_path: &PathBuf,
     ) -> VmManageResult<()> {
+        log::trace!(
+            "Adding vm/mem snapshot {} of vm {} to database",
+            vm_mem_snapshot_id,
+            vmid
+        );
         let vm_mem_snapshot_storage_table = self.vm_mem_snapshot_storage_table();
         sqlx::query(INSERT_VM_MEM_SNAPSHOT_BY_ID)
             .bind(vm_mem_snapshot_storage_table)
@@ -364,6 +376,11 @@ impl VmPool {
         vmid: Uuid,
         vm_mem_snapshot_id: Uuid,
     ) -> VmManageResult<()> {
+        log::trace!(
+            "Deleting  vm/mem snapshot {} of vm {} from database",
+            vm_mem_snapshot_id,
+            vmid
+        );
         let vm_mem_snapshot_storage_table = self.vm_mem_snapshot_storage_table();
         sqlx::query(DELETE_VM_MEM_SNAPSHOT_BY_ID)
             .bind(vm_mem_snapshot_storage_table)
@@ -380,6 +397,7 @@ impl VmPool {
 async fn init_pool(pool: VmPool) -> VmManageResult<VmPool> {
     /* Create tables for storing */
     /* machine core */
+    log::trace!("Initializing postgres");
     sqlx::query(DROP_MAHCINE_CORE_TABLE_SQL)
         .bind(pool.machine_core_storage_table())
         .execute(&pool.conn)
@@ -425,6 +443,7 @@ async fn init_pool(pool: VmPool) -> VmManageResult<VmPool> {
         .map_err(|_| VmManageError::DBCreateTable)?;
 
     /* Check storage mgr */
+    log::trace!("Checking stroage mgr");
     let url = format!("{}{}", pool.storage_mgr_addr, "/api/v1");
     let status = pool.storage_client.get(url).send().await?.status();
     match status.is_success() {
@@ -436,6 +455,7 @@ async fn init_pool(pool: VmPool) -> VmManageResult<VmPool> {
     }
 
     /* Ping to network mgr */
+    log::trace!("Checking network mgr");
     let url = format!("{}{}", pool.network_mgr_addr, "/api/v1");
     let status = pool.network_client.get(url).send().await?.status();
     match status.is_success() {
@@ -493,6 +513,7 @@ pub async fn create_vm(
     vmid: Uuid,
     create_config: &MachineCreateConfig,
 ) -> VmManageResult<Uuid> {
+    log::trace!("Creating vm {}", vmid);
     /* Read critical parameters */
     let socket_path = pool.socket_path(vmid);
     let log_fifo = pool.log_fifo(vmid);
@@ -589,10 +610,12 @@ pub async fn create_vm(
     /* Add volume to database */
     pool.add_volume_db(vmid, volume_id).await?;
 
+    log::trace!("Created vm {}", vmid);
     Ok(vmid)
 }
 
 pub async fn start_vm(pool: &mut VmPool, vmid: Uuid) -> VmManageResult<()> {
+    log::trace!("Starting vm");
     let mut machine = get_vm(pool, vmid).await?;
     machine
         .start()
@@ -606,6 +629,7 @@ pub async fn start_vm(pool: &mut VmPool, vmid: Uuid) -> VmManageResult<()> {
 }
 
 pub async fn pause_vm(pool: &mut VmPool, vmid: Uuid) -> VmManageResult<()> {
+    log::trace!("Pausing vm {}", vmid);
     let machine = get_vm(pool, vmid).await?;
     machine
         .pause()
@@ -619,6 +643,7 @@ pub async fn pause_vm(pool: &mut VmPool, vmid: Uuid) -> VmManageResult<()> {
 }
 
 pub async fn resume_vm(pool: &mut VmPool, vmid: Uuid) -> VmManageResult<()> {
+    log::trace!("Resuming vm {}", vmid);
     let machine = get_vm(pool, vmid).await?;
     machine
         .resume()
@@ -632,6 +657,7 @@ pub async fn resume_vm(pool: &mut VmPool, vmid: Uuid) -> VmManageResult<()> {
 }
 
 pub async fn stop_vm(pool: &mut VmPool, vmid: Uuid) -> VmManageResult<()> {
+    log::trace!("Stopping vm {}", vmid);
     let machine = get_vm(pool, vmid).await?;
     machine
         .shutdown()
@@ -645,6 +671,7 @@ pub async fn stop_vm(pool: &mut VmPool, vmid: Uuid) -> VmManageResult<()> {
 }
 
 pub async fn delete_vm(pool: &mut VmPool, vmid: Uuid) -> VmManageResult<()> {
+    log::trace!("Deleting vm {}", vmid);
     let mut machine = get_vm(pool, vmid).await?;
     let _ = machine.shutdown().await;
     machine
@@ -685,6 +712,7 @@ pub async fn modify_metadata(
     vmid: Uuid,
     metadata: &String,
 ) -> VmManageResult<()> {
+    log::trace!("Modifying metadata of {}", vmid);
     let machine = get_vm(pool, vmid).await?;
     machine
         .update_metadata(metadata)
@@ -694,6 +722,7 @@ pub async fn modify_metadata(
 }
 
 pub async fn get_vm_status(pool: &mut VmPool, vmid: Uuid) -> VmManageResult<VmViewInfo> {
+    log::trace!("Getting vm status of {}", vmid);
     let mut machine = get_vm(pool, vmid).await?;
     let full_config = machine
         .get_export_vm_config()
@@ -715,6 +744,7 @@ pub async fn get_vm_status(pool: &mut VmPool, vmid: Uuid) -> VmManageResult<VmVi
 }
 
 pub async fn create_vm_mem_snapshot(pool: &mut VmPool, vmid: Uuid) -> VmManageResult<Uuid> {
+    log::trace!("Creating vm/mem snapshot for {}", vmid);
     let vm_mem_snapshot_id = Uuid::new_v4();
     let mem_snapshot_path = pool.mem_snapshot_path(vmid, vm_mem_snapshot_id);
     let vm_snapshot_path = pool.vm_snapshot_path(vmid, vm_mem_snapshot_id);
@@ -740,6 +770,11 @@ pub async fn delete_vm_mem_snapshot(
     vmid: Uuid,
     vm_mem_snapshot_id: Uuid,
 ) -> VmManageResult<()> {
+    log::trace!(
+        "Deleting vm/mem snapshot {} of {}",
+        vm_mem_snapshot_id,
+        vmid
+    );
     let mem_snapshot_path = pool.mem_snapshot_path(vmid, vm_mem_snapshot_id);
     let vm_snapshot_path = pool.vm_snapshot_path(vmid, vm_mem_snapshot_id);
 
