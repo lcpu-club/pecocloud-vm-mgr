@@ -1,4 +1,14 @@
 //! RPC to storage management (naive with http)
+/* 
+Workflow:
+    Acquire a root file system in form of e.g. .tar.gz
+    Acquire volume from host machine (automatically managed by CEPH).
+    Build the root file system into the volume.
+
+    Acquire the path to the fully built rootfs-volume.
+    Set a Uuid.
+    Return a Device.
+*/
 use uuid::Uuid;
 
 use crate::{error::VmManageResult, pool::VmPool, storage_models::*};

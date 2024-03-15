@@ -1686,6 +1686,7 @@ dependencies = [
  "log",
  "log4rs",
  "reqwest",
+ "run_script",
  "rustcracker",
  "serde",
  "serde_json",

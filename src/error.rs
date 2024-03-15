@@ -37,6 +37,8 @@ pub enum VmManageError {
     EnvAgentRequest,
     EnvKernelList,
     EnvMemoryDir,
+
+    NetworkError,
 }
 
 pub type VmManageResult<T> = Result<T, VmManageError>;
@@ -75,6 +77,7 @@ impl std::fmt::Display for VmManageError {
             VmManageError::EnvAgentRequest => format!("AGENT_AGENT_REQUEST_TIMEOUT_TIMEOUT must be set"),
             VmManageError::EnvKernelList => format!("KERNEL_LIST_FILE must be set"),
             VmManageError::EnvMemoryDir => format!("MEMORY_SNAPSHOT_DIR must be set"),
+            VmManageError::NetworkError => format!("Network error"),
         };
         write!(f, "{}", s)
     }
